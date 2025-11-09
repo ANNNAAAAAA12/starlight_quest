@@ -20,7 +20,8 @@ public class NewMonoBehaviourScript : MonoBehaviour
     private float yaw;
     private Vector3 externalVelocity = Vector3.zero;
 
-    
+    public bool IsMoving { get; private set; }
+   
 
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
