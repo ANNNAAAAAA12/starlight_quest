@@ -2,33 +2,37 @@ using UnityEngine;
 
 public class StartGameUI : MonoBehaviour
 {
-    private GameObject menuUI; 
+    // Hacemos que sea pública para asignarla arrastrando en el Inspector
+    public GameObject menuUI; 
 
+    // Ya no necesitamos el método Start() para buscar el objeto.
+    /*
     void Start()
     {
-        
-        menuUI = GameObject.Find("MenuUI");
-
-        if (menuUI == null)
-        {
-            Debug.LogWarning("No se encontró el objeto llamado 'MenuUI'. Verifica el nombre exacto en la jerarquía.");
-        }
+        // Se puede eliminar este método si asignas la variable menuUI en el Inspector
     }
+    */
 
-    public void EmpezarJuego()
+   public void EmpezarJuego()
+{
+    // 1. Ocultar el menú (como ya lo tienes)
+    if (menuUI != null)
     {
-        Debug.Log("Botón Empezar presionado");
-
-        if (menuUI != null)
-        {
-            menuUI.SetActive(false);
-            Debug.Log("Menú ocultado automáticamente");
-        }
-        else
-        {
-            Debug.LogWarning("No se pudo ocultar el menú porque no se encontró el objeto 'MenuUI'");
-        }
+        menuUI.SetActive(false);
     }
+    
+    // 2. BUSCAR y ACTIVAR el script del astronauta
+    GameObject astronauta = GameObject.Find("astronautaterminadonickz (3) 1"); // Usa el nombre exacto de la jerarquía
+    if (astronauta != null)
+    {
+        // Esto activa el script, que a su vez bloqueará el cursor (si esa línea está en su Start/Update)
+        astronauta.GetComponent<AstronautaController>().enabled = true; 
+    }
+    
+    // 3. (Opcional) Asegurarse de que el cursor se oculte si es necesario
+    Cursor.lockState = CursorLockMode.Locked;
+    Cursor.visible = false;
+}
 }
 
 
