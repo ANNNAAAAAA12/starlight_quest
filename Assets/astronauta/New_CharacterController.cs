@@ -30,8 +30,6 @@ public class New_CharacterController : MonoBehaviour
     public float CurrentYaw => yaw;
 
 
-    
-
 
 
     
@@ -50,51 +48,69 @@ public class New_CharacterController : MonoBehaviour
        HandleRotation();
        updateAnimator();
     }
+    
 
-    void HandleMovement()
+    private void HandleMovement()
+{
+    float horizontal = Input.GetAxis("Horizontal");
+    float vertical = Input.GetAxis("Vertical");
+
+    Vector3 inputDirection = new Vector3(horizontal, 0f, vertical).normalized;
+    IsMoving = inputDirection != Vector3.zero;
+
+    Vector3 moveDirection = Vector3.zero;
+
+    if (IsMoving)
     {
-        IsGrounded = characterController.isGrounded;
+        // Dirección de la cámara en plano horizontal
+        Vector3 cameraForward = cameraTransform.forward;
+        cameraForward.y = 0f;
+        cameraForward.Normalize();
 
-        if (IsGrounded && Velocity.y < 0)
-        {
-            if (externalVelocity.y > -0.05f && externalVelocity.y < 0.05f)
-                Velocity.y = 0;
-            else
-                Velocity.y = -2f;
-        }
-        float horizontal = Input.GetAxis("Horizontal");
-        float vertical = Input.GetAxis("Vertical");
-        Vector3 inputDirection = new Vector3(horizontal, 0f, vertical).normalized;
-        IsMoving = inputDirection.magnitude > 0.1f;
-        Vector3 moveDirection = Vector3.zero;
+        Vector3 cameraRight = cameraTransform.right;
+        cameraRight.y = 0f;
+        cameraRight.Normalize();
 
-        if (IsMoving)
-        {
-            moveDirection = Quaternion.Euler(0f, cameraTransform.eulerAngles.y, 0f) * inputDirection;
-            bool isSprinting = Input.GetKey(KeyCode.LeftShift);
-            currentSpeed = isSprinting ? SprintSpeed : WalkSpeed;
-        }
+        // Dirección final influenciada por la cámara
+        moveDirection = (cameraForward * vertical + cameraRight * horizontal).normalized;
 
-        if (Input.GetButtonDown("Jump") && IsGrounded)
-        {
+        // Velocidad
+        bool isSprinting = Input.GetKey(KeyCode.LeftShift);
+        currentSpeed = isSprinting ? SprintSpeed : WalkSpeed;
 
-
-          Velocity.y = Mathf.Sqrt(JumpHeight * -2f * gravity);
-          animator?.SetBool("isJumping", true);
-
-        }
-
-        Velocity.y += gravity * Time.deltaTime;
-        Vector3 finalMovement = (moveDirection * currentSpeed + externalVelocity) * Time.deltaTime;
-        finalMovement.y += Velocity.y * Time.deltaTime;
-        characterController.Move(finalMovement);
-
-        if(IsGrounded && Velocity.y < 0f)
-        {
-            animator?.SetBool("isJumping", false);
-        }
-
+        // Rotación hacia dirección del movimiento
+        Quaternion targetRotation = Quaternion.LookRotation(moveDirection);
+        transform.rotation = Quaternion.Lerp(transform.rotation, targetRotation, Time.deltaTime * RotationSpeed);
     }
+    else
+    {
+        currentSpeed = 0f;
+    }
+
+    // Movimiento horizontal
+    Vector3 movement = moveDirection * currentSpeed * Time.deltaTime;
+
+    // Gravedad
+    Velocity.y += gravity * Time.deltaTime;
+    movement.y = Velocity.y * Time.deltaTime;
+
+    characterController.Move(movement);
+
+    if (characterController.isGrounded)
+    {
+        Velocity.y = -2f; // Mantener grounded
+    }
+
+    // Salto
+    if (Input.GetButtonDown("Jump") && characterController.isGrounded)
+    {
+        Velocity.y = Mathf.Sqrt(JumpHeight * -2f * gravity);
+    }
+}
+
+
+
+
 
     void HandleRotation()
     {
