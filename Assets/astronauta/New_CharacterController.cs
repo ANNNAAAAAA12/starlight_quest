@@ -38,7 +38,7 @@ public class New_CharacterController : MonoBehaviour
     void Start()
     {
         characterController = GetComponent<CharacterController>();
-        Cursor.lockState = CursorLockMode.Locked;
+
 
         
     }
@@ -46,7 +46,9 @@ public class New_CharacterController : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-
+       HandleMovement();
+       HandleRotation();
+       updateAnimator();
     }
 
     void HandleMovement()
@@ -91,5 +93,28 @@ public class New_CharacterController : MonoBehaviour
         {
             animator?.SetBool("isJumping", false);
         }
+
     }
-}
+
+    void HandleRotation()
+    {
+        float mouseX= Input.GetAxis("Mouse X") * mouseSensivity;
+        yaw += mouseX; 
+
+        if (IsMoving)
+        {
+            transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.Euler(0f, yaw, 0f), RotationSpeed* Time.deltaTime);
+        }
+    }
+
+    void updateAnimator()
+    {
+        float SpeedPercent = IsMoving ? (currentSpeed == SprintSpeed? 1f : 0.5f) :0f;
+        animator?.SetFloat("Speed", SpeedPercent, 0.1f, Time.deltaTime);
+        animator?.SetBool("IsGrounded", IsGrounded);
+        animator?.SetFloat("VerticalSpeed", Velocity.y);
+    }
+
+
+    }
+
