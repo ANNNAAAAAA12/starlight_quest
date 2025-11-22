@@ -13,6 +13,7 @@ public class AstronautController : MonoBehaviour
     public float rotationSpeed = 720f;
     public float jumpHeight = 1.2f;
     public float gravity = -9.81f;
+    public bool lockAndHideCursor = true;
 
     public float jumpPreDelay = 0.20f;
     float jumpPreDelayTimer = 0f;
@@ -53,6 +54,11 @@ public class AstronautController : MonoBehaviour
     float landingLockTimer = 0f;
     public float landingDuration = 0.20f;
 
+    float teleportLockTimer = 0f;
+    public float teleportLockDuration = 0.35f;
+    public float gravityZoneCheckRadius = 0.8f;
+    public LayerMask gravityZoneLayers = ~0;
+
     // Hashes
     int speedHash, groundedHash, runningHash;
     int pushingHash, isJumpingHash, blendHash;
@@ -82,6 +88,12 @@ public class AstronautController : MonoBehaviour
         animator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
 
         CacheAnimatorParams();
+
+        if (lockAndHideCursor)
+        {
+            Cursor.lockState = CursorLockMode.Locked;
+            Cursor.visible = false;
+        }
     }
 
     void Update()
@@ -100,6 +112,11 @@ public class AstronautController : MonoBehaviour
             if (landingLockTimer <= 0f)
                 isLanding = false;
         }
+
+        if (teleportLockTimer > 0f)
+            teleportLockTimer -= Time.deltaTime;
+
+        CheckGravityZones();
     }
 
     Vector3 moveDir;
@@ -270,19 +287,23 @@ public class AstronautController : MonoBehaviour
 
     if (punchPressed)
     {
-        // Fuerza detener locomoción
         if (hasSpeed) animator.SetFloat(speedHash, 0f);
         if (hasBlend) animator.SetFloat(blendHash, 0f);
 
-        // Cancela cualquier animación que esté corriendo
         animator.Update(0f);
 
-        // Interrumpe TODO lo anterior y ejecuta golpe YA MISMO
         animator.SetTrigger(punchHash);
 
-        // Bloquea movimiento durante el punch (opcional)
         moveDir = Vector3.zero;
         inputMag = 0f;
+
+        Vector3 origin = transform.position + Vector3.up * 0.9f;
+        Vector3 dir = transform.forward;
+        if (Physics.Raycast(origin, dir, out var hit, 1.8f))
+        {
+            var br = hit.collider.GetComponentInParent<Breakable>();
+            if (br != null) br.Hit();
+        }
     }
 }
 
@@ -292,6 +313,42 @@ public class AstronautController : MonoBehaviour
         if (hasRunning) animator.SetBool(runningHash, isRunning);
         if (hasPushing) animator.SetBool(pushingHash, isPushing);
     }
+
+    void OnControllerColliderHit(ControllerColliderHit hit)
+    {
+        var gz = hit.collider.GetComponent<GravityZone>();
+        if (gz != null)
+        {
+            gravity = gz.gravityValue;
+            jumpHeight = gz.jumpHeightValue;
+        }
+
+        var tp = hit.collider.GetComponent<Teleporter>();
+        if (tp != null)
+        {
+            if (teleportLockTimer > 0f) return;
+            if (tp.target == null) return;
+            transform.position = tp.target.position;
+            teleportLockTimer = teleportLockDuration;
+        }
+    }
+
+    void CheckGravityZones()
+    {
+        var hits = Physics.OverlapSphere(transform.position, gravityZoneCheckRadius, gravityZoneLayers, QueryTriggerInteraction.Collide);
+        for (int i = 0; i < hits.Length; i++)
+        {
+            var gz = hits[i].GetComponent<GravityZone>();
+            if (gz != null)
+            {
+                gravity = gz.gravityValue;
+                jumpHeight = gz.jumpHeightValue;
+                break;
+            }
+        }
+    }
+
+    
 
     void CacheAnimatorParams()
     {

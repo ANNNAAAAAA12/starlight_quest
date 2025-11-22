@@ -28,10 +28,14 @@ public class CameraController : MonoBehaviour
 
      private Transform mainCamera; 
 
-     void Start ()
+    void Start ()
     {
-        playerController  = player.GetComponent<New_CharacterController>();
-        mainCamera = Camera.main.transform ; 
+        if (player != null)
+            playerController  = player.GetComponent<New_CharacterController>();
+        if (cameraTarget == null)
+            cameraTarget = player != null ? player : transform;
+        var cam = Camera.main != null ? Camera.main.transform : null;
+        mainCamera = cam != null ? cam : transform;
 
     }
 
@@ -47,7 +51,7 @@ public class CameraController : MonoBehaviour
         float mouseX = Input.GetAxis("Mouse X")* mouseSensivity ;
         float mouseY = Input.GetAxis("Mouse Y")* mouseSensivity ; 
 
-        if (playerController.IsMoving)
+        if (playerController != null && playerController.IsMoving)
         {
             yaw += playerController.CurrentYaw;
         }
@@ -64,10 +68,11 @@ public class CameraController : MonoBehaviour
     void UpdateCameraPosition()
     {
         Quaternion rotation = Quaternion.Euler(pitch, yaw, 0f);
-        Vector3 targetPosition = cameraTarget.position + rotation * shoulderoffset;
+        Vector3 targetPosition = (cameraTarget != null ? cameraTarget.position : transform.position) + rotation * shoulderoffset;
 
         mainCamera.position = Vector3.Lerp(mainCamera.position, targetPosition, followSpeed * Time.deltaTime);
-        mainCamera.LookAt(cameraTarget);
+        if (cameraTarget != null)
+            mainCamera.LookAt(cameraTarget);
     }
 
 
