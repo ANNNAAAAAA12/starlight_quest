@@ -22,4 +22,9 @@ public class GameManager : MonoBehaviour
     {
         return diamondsCollected >= required;
     }
+
+    public void ResetDiamonds()
+    {
+        diamondsCollected = 0;
+    }
 }

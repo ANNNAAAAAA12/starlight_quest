@@ -58,6 +58,7 @@ public class AstronautController : MonoBehaviour
     public float teleportLockDuration = 0.35f;
     public float gravityZoneCheckRadius = 0.8f;
     public LayerMask gravityZoneLayers = ~0;
+    public LayerMask teleporterLayers = ~0;
 
     // Hashes
     int speedHash, groundedHash, runningHash;
@@ -89,11 +90,7 @@ public class AstronautController : MonoBehaviour
 
         CacheAnimatorParams();
 
-        if (lockAndHideCursor)
-        {
-            Cursor.lockState = CursorLockMode.Locked;
-            Cursor.visible = false;
-        }
+        
     }
 
     void Update()
@@ -117,6 +114,19 @@ public class AstronautController : MonoBehaviour
             teleportLockTimer -= Time.deltaTime;
 
         CheckGravityZones();
+        CheckTeleporters();
+    }
+
+    void OnEnable()
+    {
+        if (!MainMenuController.MenuActive)
+            SetGameplayCursor(true);
+    }
+
+    public void SetGameplayCursor(bool enabled)
+    {
+        Cursor.lockState = enabled ? CursorLockMode.Locked : CursorLockMode.None;
+        Cursor.visible = !enabled;
     }
 
     Vector3 moveDir;
@@ -327,8 +337,7 @@ public class AstronautController : MonoBehaviour
         if (tp != null)
         {
             if (teleportLockTimer > 0f) return;
-            if (tp.target == null) return;
-            transform.position = tp.target.position;
+            tp.TeleportOrFinish(transform);
             teleportLockTimer = teleportLockDuration;
         }
     }
@@ -343,6 +352,22 @@ public class AstronautController : MonoBehaviour
             {
                 gravity = gz.gravityValue;
                 jumpHeight = gz.jumpHeightValue;
+                break;
+            }
+        }
+    }
+
+    void CheckTeleporters()
+    {
+        if (teleportLockTimer > 0f) return;
+        var hits = Physics.OverlapSphere(transform.position, gravityZoneCheckRadius, teleporterLayers, QueryTriggerInteraction.Collide);
+        for (int i = 0; i < hits.Length; i++)
+        {
+            var tp = hits[i].GetComponent<Teleporter>();
+            if (tp != null)
+            {
+                tp.TeleportOrFinish(transform);
+                teleportLockTimer = teleportLockDuration;
                 break;
             }
         }
